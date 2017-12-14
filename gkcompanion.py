@@ -1,7 +1,8 @@
+import logging
+import subprocess
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk
-import logging
 
 
 DRAG_ACTION = Gdk.DragAction.COPY
@@ -29,11 +30,33 @@ class GUI:
         Gtk.main_quit(*args)
 
     def on_drag_data_received(self, widget, drag_context, x, y, data, info, time):
-        text = data.get_text()
-        print("Received text: %s" % text)
+        filename = data.get_text()
+        logger.info("Received file: %s" % filename)
+        filename = filename[7:].strip('\r\n\x00')  # remove file://, \r\n and NULL
+        result = self.import_key(filename)
+        self.go_to_result(result)
 
     def on_select_button_clicked(self, button):
-        pass
+        file_chooser = self.builder.get_object("file_chooser")
+        filename = file_chooser.get_filename()
+        logger.info("Selected file: %s" % filename)
+        result = self.import_key(filename)
+        self.go_to_result(result)
+
+    def go_to_result(self, result):
+        result_label = self.builder.get_object("sign_result")
+        result_label.set_text(result)
+        stack = self.builder.get_object("companion_stack")
+        stack.set_visible_child_name("result")
+
+    @staticmethod
+    def import_key(filename):
+        try:
+            subprocess.check_output("cat " + filename + " | gpg | gpg --import", shell=True)
+            return "Signed key successfully imported"
+        except subprocess.CalledProcessError as cpe:
+            logging.error(str(cpe))
+            return "An error occurred"
 
 
 GUI()
