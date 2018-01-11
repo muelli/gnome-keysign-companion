@@ -55,8 +55,17 @@ class GUI:
     def go_to_result(self, result):
         result_label = self.builder.get_object("sign_result")
         result_label.set_text(result)
+        back_button = self.builder.get_object("back_button")
+        back_button.set_sensitive(True)
         stack = self.builder.get_object("companion_stack")
         stack.set_visible_child_name("result")
+
+    def on_back_button_clicked(self, button):
+        back_button = self.builder.get_object("back_button")
+        back_button.set_sensitive(False)
+        stack = self.builder.get_object("companion_stack")
+        stack.set_visible_child_name("select_key")
+
 
     @staticmethod
     def import_key(filename):
