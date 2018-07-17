@@ -66,6 +66,10 @@ class GUI:
         stack = self.builder.get_object("companion_stack")
         stack.set_visible_child_name("select_key")
 
+    def on_file_set(self, button):
+        select = self.builder.get_object("select_button")
+        select.set_sensitive(True)
+
 
     @staticmethod
     def import_key(filename):
