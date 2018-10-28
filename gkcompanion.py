@@ -1,4 +1,6 @@
 import logging
+import mailbox
+
 import gi
 import gpg
 
@@ -25,6 +27,7 @@ class GUI:
         self.label.drag_dest_set(Gtk.DestDefaults.ALL, [], DRAG_ACTION)
         self.label.drag_dest_set_target_list(None)
         self.label.drag_dest_add_text_targets()
+        self.label.drag_dest_add_uri_targets()
 
     @staticmethod
     def on_delete_window(*args):
@@ -32,13 +35,27 @@ class GUI:
 
     def on_drag_data_received(self, widget, drag_context, x, y, data, info, time):
         filename = data.get_text()
+        # If we don't have a filename it means that the user maybe dropped
+        # an attachment or an entire email.
+        if not filename:
+            filename = data.get_data().decode("utf-8")
         logger.info("Received file: %s" % filename)
         filename = filename[7:].strip('\r\n\x00')  # remove file://, \r\n and NULL
+        signatures = self.get_attachments(filename)
+        # If there aren't attachments probably we have directly the signature
+        if not signatures:
+            with open(filename, "rb") as si:
+                signatures.append(si.read())
+            si.close()
+
+        result = None
         try:
-            result = self.import_key(filename)
+            for signature in signatures:
+                result = self.import_key(signature)
         except gpg.errors.GPGMEError as e:
             logger.error(e)
             result = "An error occurred, please try again"
+
         self.go_to_result(result)
 
     def on_select_button_clicked(self, button):
@@ -70,18 +87,27 @@ class GUI:
         select = self.builder.get_object("select_button")
         select.set_sensitive(True)
 
-
     @staticmethod
-    def import_key(filename):
+    def import_key(signature):
         ctx = gpg.Context()
-        with open(filename, "rb") as fh:
-            decrypted = ctx.decrypt(fh)
+        decrypted = ctx.decrypt(signature)
         ctx.op_import(decrypted[0])
         result = ctx.op_import_result()
         if len(result.imports) > 0:
             return "Signed key successfully imported"
         else:
             raise gpg.errors.GPGMEError
+
+    @staticmethod
+    def get_attachments(filename):
+        mbox = mailbox.mbox(filename)
+        attachments = []
+        for message in mbox:
+            # Check if there are attachments
+            if message.is_multipart():
+                for attach in message.get_payload()[1:]:
+                    attachments.append(attach.get_payload(decode=True))
+        return attachments
 
 
 GUI()
