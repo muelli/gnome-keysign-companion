@@ -23,11 +23,42 @@ class GUI:
         self.window.show()
 
         self.label = self.builder.get_object("drop_here")
+        self.eventbox = self.builder.get_object("eventbox")
 
         self.label.drag_dest_set(Gtk.DestDefaults.ALL, [], DRAG_ACTION)
         self.label.drag_dest_set_target_list(None)
         self.label.drag_dest_add_text_targets()
         self.label.drag_dest_add_uri_targets()
+
+        select = self.builder.get_object("select_button")
+        list_targets = []
+        if False:
+            list_targets = Gtk.TargetList.new([])
+            [
+                #Gtk.TargetEntry("text/uri-list"),
+                Gtk.TargetEntry.new("text/plain"),
+                #Gtk.TargetEntry("TEXT"),
+            ]
+        select.drag_source_set(Gdk.ModifierType.BUTTON1_MASK, list_targets, DRAG_ACTION)
+        #select.drag_source_add_text_targets()
+        select.drag_source_add_uri_targets()
+        # select.drag_source_set_target_list(Gtk.TargetList.new([Gtk.TargetEntry()]))
+        select.connect("drag-data-get", self.on_drag_data_get)
+        #select.connect("drag-begin", self.on_drag_begin)
+
+    def on_drag_begin(self, label, drag_context):
+        logger.warning("Info: %r", drag_context)
+        return drag_context
+
+    def on_drag_data_get(self, label, drag_context, data, info, time):
+        logger.info("Info: %r", info)
+        logger.info("Time: %r", time)
+        logger.info("Data: %r", data)
+        data.set_text("Hello", -1)
+        fname = "/tmp/foo"
+        with open(fname, 'w') as fh:
+            fh.write("Bar!")
+        data.set_uris(["/tmp/foo"])
 
     @staticmethod
     def on_delete_window(*args):
@@ -109,6 +140,6 @@ class GUI:
                     attachments.append(attach.get_payload(decode=True))
         return attachments
 
-
+logging.basicConfig(level=logging.DEBUG)
 GUI()
 Gtk.main()
