@@ -1,5 +1,6 @@
 import logging
 import mailbox
+from urllib.parse import quote
 
 import gi
 import gpg
@@ -55,10 +56,10 @@ class GUI:
         logger.info("Time: %r", time)
         logger.info("Data: %r", data)
         data.set_text("Hello", -1)
-        fname = "/tmp/foo"
+        fname = "/tmp/foo bar baz qüx!ß"
         with open(fname, 'w') as fh:
             fh.write("Bar!")
-        data.set_uris(["/tmp/foo"])
+        data.set_uris(["file:%s" % quote(fname)])
 
     @staticmethod
     def on_delete_window(*args):
